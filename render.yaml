@@ -10,3 +10,10 @@ services:
         value: 3001
       - key: NODE_ENV
         value: production
+
+  - type: web
+    name: omninote-vault-web
+    env: static
+    rootDir: web_app
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
