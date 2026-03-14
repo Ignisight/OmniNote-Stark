@@ -15,6 +15,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.ignisight.omninote",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/icon.png"
@@ -22,6 +23,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "77056b29-b976-4ae7-95e8-f5a457193bed"
+      }
+    },
+    "owner": "ignisight"
   }
 }
