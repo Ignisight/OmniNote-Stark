@@ -51,7 +51,6 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [systemStatus, setSystemStatus] = useState<'STABLE' | 'PATCHING' | 'RECOVERING'>('STABLE');
-  const [activePatches, setActivePatches] = useState<string[]>([]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme);
@@ -80,7 +79,7 @@ const App: React.FC = () => {
     });
 
     // Handle high-volume Drive vault synchronization
-    newSocket.on('vault-sync', (encryptedData: string) => {
+    newSocket.on('vault-sync', () => {
       console.log('STARK_SYSTEM: INCOMING_ENCRYPTED_DRIVE_PAYLOAD');
       // Logic to decrypt and update notes would go here
     });
@@ -96,7 +95,6 @@ const App: React.FC = () => {
         document.head.appendChild(style);
       }
       
-      setActivePatches(prev => [...prev, patch.id]);
       setTimeout(() => setSystemStatus('STABLE'), 2000);
     });
 

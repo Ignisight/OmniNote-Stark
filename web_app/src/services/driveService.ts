@@ -10,7 +10,6 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
 export class DriveService {
   private static instance: DriveService;
-  private gapi: any;
 
   private constructor() {}
 
