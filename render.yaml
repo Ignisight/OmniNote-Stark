@@ -2,6 +2,7 @@ services:
   - type: web
     name: omninote-core
     env: node
+    rootDir: backend
     buildCommand: npm install
     startCommand: node index.js
     envVars:
