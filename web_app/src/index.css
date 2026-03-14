@@ -1,0 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --primary: #ff3131;
+  --bg: #000000;
+  --card: #0c0c0e;
+  --text: #ffffff;
+  --sub: #666666;
+  --border: #111111;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='STARK_YELLOW'] {
+  --primary: #ffcc00;
+  --bg: #000000;
+  --card: #0c0c0e;
+  --text: #ffffff;
+  --sub: #666666;
+  --border: #111111;
+}
+
+[data-theme='STARK_BLUE'] {
+  --primary: #0066ff;
+  --bg: #000000;
+  --card: #0c0c0e;
+  --text: #ffffff;
+  --sub: #666666;
+  --border: #111111;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  transition: background-color 0.4s ease;
+}
+
+/* Custom Industrial Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.dot-pattern {
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.stark-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  transition: var(--transition);
+}
+
+.stark-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.industrial-input {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+.industrial-input::placeholder {
+  color: var(--sub);
+  opacity: 0.5;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: var(--transition);
+  color: var(--sub);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.btn-icon:hover {
+  background: var(--border);
+  color: var(--primary);
+}
+
+.btn-icon.active {
+  background: var(--primary);
+  color: var(--bg);
+}
+
+.logo-box {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: var(--primary);
+  transform: rotate(45deg);
+  transition: var(--transition);
+}
+
+.logo-box span {
+  transform: rotate(-45deg);
+}
+
+.main-fab {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: var(--text);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  transition: var(--transition);
+}
+
+.main-fab:hover {
+  transform: scale(1.1) rotate(5deg);
+  background: var(--primary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade {
+  animation: fadeIn 0.4s ease forwards;
+}
