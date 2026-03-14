@@ -24,7 +24,7 @@ declare global {
   }
 }
 
-const SOCKET_URL = 'http://localhost:3001';
+const SOCKET_URL = 'https://omninote-core.onrender.com';
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'; 
 
 type ThemeType = 'STARK_RED' | 'STARK_YELLOW' | 'STARK_BLUE';

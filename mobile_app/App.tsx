@@ -31,7 +31,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2;
 
-const SOCKET_URL = 'http://10.1.14.10:3001';
+const SOCKET_URL = 'https://omninote-core.onrender.com';
 
 const THEMES: any = {
   STARK_RED: { id: 'RED_DARK', primary: '#ff3131', bg: '#000', card: '#0c0c0e', text: '#fff', sub: '#666', border: '#111', barStyle: 'light-content' as const },
