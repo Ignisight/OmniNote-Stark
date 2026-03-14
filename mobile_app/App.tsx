@@ -23,6 +23,7 @@ import {
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { io, Socket } from 'socket.io-client';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { CameraView, Camera } from 'expo-camera';
 // Encryption logic moved to a lightweight native-safe implementation
 
 // Google Sign-In is usually configured with context/hooks in real apps, 
@@ -165,6 +166,9 @@ const AppContent = () => {
   const [currentLanguage, setCurrentLanguage] = useState('ENGLISH (US)');
   const [currentTheme, setCurrentTheme] = useState('STARK_RED');
   const [themePickerVisible, setThemePickerVisible] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [scanned, setScanned] = useState(false);
   const T = THEMES[currentTheme] || THEMES.STARK_RED;
 
   const goToToday = () => {
@@ -201,8 +205,35 @@ const AppContent = () => {
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
+    
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+
     return () => { newSocket.disconnect(); };
   }, []);
+
+  const handleBarCodeScanned = ({ type, data }: { type: string, data: string }) => {
+    setScanned(true);
+    setScannerVisible(false);
+    
+    try {
+      // Expecting a JSON or a specific Stark Link string
+      // e.g., "STARK_LINK:socket_id" or "https://..."
+      if (data.startsWith('STARK_LINK:')) {
+        const targetId = data.replace('STARK_LINK:', '');
+        socket?.emit('pair-request', { targetId, device: 'Mobile' });
+        Alert.alert("STARK_LINK", "Workstation sync initiated. Check your PC app.");
+      } else {
+        Alert.alert("STARK_FAIL", "Invalid QR code. Please scan the 'Connect' QR from OmniNote PC or Web.");
+      }
+    } catch (e) {
+      Alert.alert("STARK_ERROR", "Scanner decoding failure.");
+    } finally {
+      setScanned(false);
+    }
+  };
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? -330 : 0;
@@ -692,24 +723,62 @@ const AppContent = () => {
               if (googleUser) handleCloudSync(); // LIVE SYNC ON CLOSE
             }}><Feather name="chevron-down" size={28} color={T.text} /></TouchableOpacity>
             <View style={styles.editorHeaderActions}>
-              <TouchableOpacity onPress={() => {
-                if(editingNote) {
-                  setNotes(prev => prev.map(n => n.id === editingNote.id ? {...n, isArchived: !n.isArchived} : n));
-                  setModalVisible(false);
-                }
-              }}>
-                <MaterialCommunityIcons name={editingNote?.isArchived ? "archive" : "archive-outline"} size={20} color={editingNote?.isArchived ? T.primary : T.sub} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity onPress={() => {
-                if(editingNote) {
-                  setCalendarVisible(true);
-                }
-              }}>
-                <Feather name="bell" size={20} color={editingNote?.isReminder ? T.primary : T.sub} />
-              </TouchableOpacity>
+              {editingNote?.isDeleted ? (
+                <>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      if(editingNote) {
+                        setNotes(prev => prev.map(n => n.id === editingNote.id ? {...n, isDeleted: false} : n));
+                        setModalVisible(false);
+                        if (googleUser) handleCloudSync();
+                      }
+                    }}
+                    style={{ marginRight: 20 }}
+                  >
+                    <MaterialCommunityIcons name="backup-restore" size={24} color={T.primary} />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    onPress={() => {
+                      if(editingNote) {
+                        setNotes(prev => prev.filter(n => n.id !== editingNote.id));
+                        setModalVisible(false);
+                        if (googleUser) handleCloudSync();
+                      }
+                    }}
+                  >
+                    <Feather name="trash-2" size={24} color="#ff3b30" />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity onPress={() => {
+                    if(editingNote) {
+                      setNotes(prev => prev.map(n => n.id === editingNote.id ? {...n, isArchived: !n.isArchived} : n));
+                      setModalVisible(false);
+                    }
+                  }}>
+                    <MaterialCommunityIcons name={editingNote?.isArchived ? "archive" : "archive-outline"} size={20} color={editingNote?.isArchived ? T.primary : T.sub} />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity onPress={() => {
+                    if(editingNote) {
+                      setCalendarVisible(true);
+                    }
+                  }}>
+                    <Feather name="bell" size={20} color={editingNote?.isReminder ? T.primary : T.sub} />
+                  </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => { if(editingNote) { setNotes(prev => prev.map(n => n.id === editingNote.id ? {...n, isDeleted: true} : n)); setModalVisible(false); }}}><Feather name="trash-2" size={20} color={T.primary} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => { 
+                    if(editingNote) { 
+                      setNotes(prev => prev.map(n => n.id === editingNote.id ? {...n, isDeleted: true} : n)); 
+                      setModalVisible(false); 
+                    } 
+                  }}>
+                    <Feather name="trash-2" size={20} color={T.primary} />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
             {googleUser && (
               <View style={styles.editorSyncLabel}>
@@ -952,6 +1021,14 @@ const AppContent = () => {
               <Feather name="chevron-right" size={20} color={T.sub} />
             </TouchableOpacity>
             
+            <TouchableOpacity style={[styles.settingRow, { backgroundColor: T.card }]} onPress={() => setScannerVisible(true)}>
+              <View>
+                <Text style={[styles.settingTxt, { color: T.text }]}>SYNC WORKSTATION</Text>
+                <Text style={{ color: T.primary, fontSize: 10, fontWeight: 'bold' }}>SCAN QR TO LINK PC/WEB</Text>
+              </View>
+              <MaterialCommunityIcons name="qrcode-scan" size={20} color={T.primary} />
+            </TouchableOpacity>
+
             <View style={{ height: 40 }} />
             <Text style={[styles.settingsSection, { color: T.sub }]}>ABOUT</Text>
             <TouchableOpacity style={[styles.settingRow, { backgroundColor: T.card }]} onPress={() => Linking.openURL('https://github.com')}>
@@ -959,6 +1036,36 @@ const AppContent = () => {
               <Feather name="external-link" size={18} color={T.sub} />
             </TouchableOpacity>
           </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* QR SCANNER MODAL */}
+      <Modal visible={scannerVisible} animationType="slide">
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+          <View style={styles.scannerHeader}>
+            <TouchableOpacity onPress={() => setScannerVisible(false)}>
+              <Feather name="x" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.scannerTitle}>STARK_LINK_SCANNER</Text>
+          </View>
+          
+          <View style={styles.scannerContainer}>
+            {hasPermission === false ? (
+              <Text style={{ color: '#fff', textAlign: 'center', marginTop: 50 }}>No access to camera. Please enable in settings.</Text>
+            ) : (
+              <CameraView
+                onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                barcodeScannerSettings={{
+                  barcodeTypes: ["qr"],
+                }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            )}
+            <View style={styles.scannerOverlay}>
+              <View style={[styles.scannerFrame, { borderColor: T.primary }]} />
+              <Text style={styles.scannerHint}>PLACE PC QR CODE INSIDE THE FRAME</Text>
+            </View>
+          </View>
         </SafeAreaView>
       </Modal>
 
@@ -1340,5 +1447,13 @@ const styles = StyleSheet.create({
   sortOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18, paddingHorizontal: 20, borderRadius: 16, gap: 15, marginBottom: 8 },
   sortOptionActive: { backgroundColor: '#ff3131' },
   sortOptionText: { color: '#666', fontSize: 14, fontWeight: 'bold' },
-  sortOptionTextActive: { color: '#000' }
+  sortOptionTextActive: { color: '#000' },
+
+  // Scanner Styles
+  scannerHeader: { flexDirection: 'row', alignItems: 'center', padding: 25, gap: 20, backgroundColor: '#000' },
+  scannerTitle: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+  scannerContainer: { flex: 1, overflow: 'hidden', position: 'relative' },
+  scannerOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  scannerFrame: { width: 250, height: 250, borderWidth: 2, borderRadius: 30, backgroundColor: 'transparent' },
+  scannerHint: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 1, marginTop: 40 }
 });

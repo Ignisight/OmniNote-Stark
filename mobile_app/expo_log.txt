@@ -1,0 +1,13 @@
+Starting project at E:\AG\OmniNote\mobile_app
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Tunnel connected.
+Tunnel ready.
+The following packages should be updated for best compatibility with the installed expo version:
+  react-native-gesture-handler@2.20.2 - expected version: ~2.28.0
+  react-native-reanimated@3.16.7 - expected version: ~4.1.1
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Android .\index.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android Bundled 2601ms index.js (807 modules)
