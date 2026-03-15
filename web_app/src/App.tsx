@@ -34,8 +34,13 @@ interface Note {
 }
 
 const App: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [currentTheme, setCurrentTheme] = useState<ThemeType>('STARK_RED');
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const saved = localStorage.getItem('stark_notes');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [currentTheme, setCurrentTheme] = useState<ThemeType>(() => {
+    return (localStorage.getItem('stark_theme') as ThemeType) || 'STARK_RED';
+  });
   const [currentView, setCurrentView] = useState<ViewType>('Notes');
   const [isGridView, setIsGridView] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,13 +53,28 @@ const App: React.FC = () => {
   const [showSortDrawer, setShowSortDrawer] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('ENGLISH (US)');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('stark_logged_in') === 'true';
+  });
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [systemStatus, setSystemStatus] = useState<'STABLE' | 'PATCHING' | 'RECOVERING'>('STABLE');
 
   useEffect(() => {
+    localStorage.setItem('stark_theme', currentTheme);
     document.documentElement.setAttribute('data-theme', currentTheme);
   }, [currentTheme]);
+
+  useEffect(() => {
+    localStorage.setItem('stark_notes', JSON.stringify(notes));
+  }, [notes]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      localStorage.setItem('stark_logged_in', 'true');
+    } else {
+      localStorage.removeItem('stark_logged_in');
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
