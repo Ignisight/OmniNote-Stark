@@ -43,6 +43,7 @@
 1. **Build**: Trigger via EAS (Expo Application Services).
 2. **Command**: `npx eas build -p android --profile preview`
 3. **Distribution**: Direct APK download for android nodes.
+4. **Download**: [Download Expo APK Build](https://expo.dev/accounts/ignisight/projects/mobile_app/builds/dcb6bb4f-7276-444f-a1a3-3444347196de)
 
 ### **PC Workstation (Windows .exe)**
 1. **Build**: Built via Electron & Electron-Packager.
