@@ -1,5 +1,5 @@
 /**
- * Google Drive Service for OmniNote
+ * Google Drive Service for OmniNotes
  * Handles OAuth2 and File Operations
  */
 
@@ -56,7 +56,7 @@ export class DriveService {
     // Logic to check if file exists and update, or create new
     // Simplified: Always create for now or find by name
     const metadata = {
-      'name': `omninote_${note.id}.json`,
+      'name': `omninotes_${note.id}.json`,
       'mimeType': 'application/json'
     };
 

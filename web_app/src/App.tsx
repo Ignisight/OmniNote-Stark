@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
-const SOCKET_URL = 'https://omninote-core.onrender.com';
+const SOCKET_URL = 'https://omninotes-core.onrender.com';
 
 type NoteType = 'text' | 'code' | 'checklist' | 'image';
 type ThemeType = 'STARK_RED' | 'STARK_YELLOW' | 'STARK_BLUE';
@@ -209,7 +209,7 @@ const App: React.FC = () => {
               <span>!</span>
             </div>
           </div>
-          <span className="brand-text">OmniNote</span>
+          <span className="brand-text">OmniNotes</span>
         </header>
 
         <nav className="nav-stack">
@@ -422,7 +422,7 @@ const App: React.FC = () => {
                 <span className="section-label">SYSTEM_INFO</span>
                 <div className="pref-row">
                   <span>REPOSITORY_LOGS</span>
-                  <Globe size={14} className="cursor-pointer" onClick={() => window.open('https://github.com/Ignisight/OmniNote-Stark', '_blank')} />
+                  <Globe size={14} className="cursor-pointer" onClick={() => window.open('https://github.com/Ignisight/OmniNotes-Stark', '_blank')} />
                 </div>
                 <div className="pref-row">
                   <span>VAULT_ENCRYPTION</span>
@@ -842,7 +842,7 @@ const LoginPortal = ({ onLogin, socket }: { onLogin: () => void, socket: Socket 
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
-            <span style={{ fontSize: '7px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '4px' }}>OMNINOTE_STARK_INDUSTRIAL</span>
+            <span style={{ fontSize: '7px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '4px' }}>OMNINOTES_STARK_INDUSTRIAL</span>
             <span style={{ fontSize: '7px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '2px' }}>ENCRYPTION_v5.6_STABLE</span>
           </div>
         </div>

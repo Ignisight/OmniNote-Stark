@@ -32,7 +32,7 @@ import { CameraView, Camera } from 'expo-camera';
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2;
 
-const SOCKET_URL = 'https://omninote-core.onrender.com';
+const SOCKET_URL = 'https://omninotes-core.onrender.com';
 
 const THEMES: any = {
   STARK_RED: { id: 'RED_DARK', primary: '#ff3131', bg: '#000', card: '#0c0c0e', text: '#fff', sub: '#666', border: '#111', barStyle: 'light-content' as const },
@@ -200,7 +200,7 @@ const AppContent = () => {
     setModalVisible(true);
   };
   
-  const ENCRYPTION_KEY = 'omninote-stark-industrial'; // Standard industrial key
+  const ENCRYPTION_KEY = 'omninotes-stark-industrial'; // Standard industrial key
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
@@ -226,7 +226,7 @@ const AppContent = () => {
         socket?.emit('pair-request', { targetId, device: 'Mobile' });
         Alert.alert("STARK_LINK", "Workstation sync initiated. Check your PC app.");
       } else {
-        Alert.alert("STARK_FAIL", "Invalid QR code. Please scan the 'Connect' QR from OmniNote PC or Web.");
+        Alert.alert("STARK_FAIL", "Invalid QR code. Please scan the 'Connect' QR from OmniNotes PC or Web.");
       }
     } catch (e) {
       Alert.alert("STARK_ERROR", "Scanner decoding failure.");
@@ -468,7 +468,7 @@ const AppContent = () => {
     setIsSyncing(true);
     
     // Logic for Drive storage:
-    // 1. Check for 'OmniNote_Encrypted_Data' folder in Google Drive appDataFolder
+    // 1. Check for 'OmniNotes_Encrypted_Data' folder in Google Drive appDataFolder
     // 2. Encrypt the entire 'notes' state
     // 3. Upload/Update the file
     
@@ -525,7 +525,7 @@ const AppContent = () => {
           </TouchableOpacity>
           <TextInput 
             style={[styles.searchInput, { color: T.text }]}
-            placeholder="Search OmniNote"
+            placeholder="Search OmniNotes"
             placeholderTextColor={T.sub}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -688,7 +688,7 @@ const AppContent = () => {
             <View style={[styles.logoBox, { borderColor: T.primary, width: 30, height: 30 }]}>
               <Text style={[styles.logoText, { color: T.primary, fontSize: 16 }]}>!</Text>
             </View>
-            <Text style={[styles.sideBrand, { color: T.text }]}>OmniNote</Text>
+            <Text style={[styles.sideBrand, { color: T.text }]}>OmniNotes</Text>
           </View>
           <View style={[styles.sideDivider, { backgroundColor: T.primary }]} />
         </View>
@@ -1192,7 +1192,7 @@ const AppContent = () => {
             <View style={styles.pickerHeader}>
               <MaterialCommunityIcons name="google" size={24} color="#fff" />
               <Text style={styles.pickerTitle}>Choose an account</Text>
-              <Text style={styles.pickerSub}>to continue to OmniNote Drive</Text>
+              <Text style={styles.pickerSub}>to continue to OmniNotes Drive</Text>
             </View>
             
             <View style={styles.accountsList}>
