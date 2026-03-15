@@ -80,6 +80,11 @@ const App: React.FC = () => {
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
     
+    const existingVault = localStorage.getItem('stark_vault_id');
+    if (existingVault) {
+      newSocket.emit('join-room', existingVault);
+    }
+    
     newSocket.on('note-update', (updatedNote: Note) => {
       setNotes(prev => {
         const idx = prev.findIndex(n => n.id === updatedNote.id);
@@ -92,10 +97,19 @@ const App: React.FC = () => {
       });
     });
 
-    // Handle scalable QR Bridge synchronization
     newSocket.on('bridge-auth-success', (userData: { email: string, vaultId: string }) => {
       console.log('STARK_SYSTEM: SECURE_BRIDGE_VERIFIED', userData);
+      localStorage.setItem('stark_vault_id', userData.vaultId);
       setIsLoggedIn(true);
+    });
+
+    newSocket.on('request-sync', () => {
+      const currentNotes = JSON.parse(localStorage.getItem('stark_notes') || '[]');
+      newSocket.emit('sync-all', currentNotes);
+    });
+
+    newSocket.on('bulk-sync', (allNotes: Note[]) => {
+      setNotes(allNotes);
     });
 
     // Handle high-volume Drive vault synchronization

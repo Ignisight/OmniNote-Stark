@@ -23,22 +23,49 @@ const activeNotes = {};
 io.on('connection', (socket) => {
   console.log('STARK_NODE: Station Connected ->', socket.id);
 
-  socket.on('join-note', (noteId) => {
-    socket.join(noteId);
+  socket.on('pair-request', (data) => {
+    // Mobile scans QR and sends PC's socket.id in targetId
+    const targetSocketId = data.targetId;
+    const roomName = 'user-vault-' + targetSocketId;
+    
+    console.log(`STARK_NODE: Pairing Mobile(${socket.id}) with PC(${targetSocketId})`);
+    
+    // Add mobile to the shared room
+    socket.join(roomName);
+
+    // Let the PC know it has been successfully verified, and PC joins the room as well
+    const targetSocket = io.sockets.sockets.get(targetSocketId);
+    if (targetSocket) {
+      targetSocket.join(roomName);
+      io.to(targetSocketId).emit('bridge-auth-success', { email: 'Mobile App', vaultId: roomName });
+      // Ask PC to send its current notes to mobile right after pairing
+      io.to(targetSocketId).emit('request-sync');
+    }
+  });
+
+  socket.on('join-room', (roomId) => {
+    socket.join(roomId);
   });
 
   socket.on('typing', (data) => {
-    // Data contains: { noteId, title, content, tags, checklist, theme }
-    socket.to(data.noteId).emit('note-update', data);
+    // Iterate over rooms this socket is in and emit to the user vault
+    socket.rooms.forEach(room => {
+      if (room.startsWith('user-vault-')) {
+        socket.to(room).emit('note-update', data);
+      }
+    });
   });
 
   socket.on('sync-all', (allNotes) => {
-    // This allows syncing between devices when one comes online
-    socket.broadcast.emit('bulk-sync', allNotes);
+    socket.rooms.forEach(room => {
+      if (room.startsWith('user-vault-')) {
+        socket.to(room).emit('bulk-sync', allNotes);
+      }
+    });
   });
 
   socket.on('disconnect', () => {
-    console.log('STARK_NODE: Station Disconnected');
+    console.log('STARK_NODE: Station Disconnected', socket.id);
   });
 });
 

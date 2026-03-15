@@ -211,6 +211,22 @@ const AppContent = () => {
       setHasPermission(status === 'granted');
     })();
 
+    newSocket.on('note-update', (updatedNote: Note) => {
+      setNotes(prev => {
+        const idx = prev.findIndex(n => n.id === updatedNote.id);
+        if (idx !== -1) {
+          const n = [...prev];
+          n[idx] = updatedNote;
+          return n;
+        }
+        return [updatedNote, ...prev];
+      });
+    });
+
+    newSocket.on('bulk-sync', (allNotes: Note[]) => {
+      setNotes(allNotes);
+    });
+
     return () => { newSocket.disconnect(); };
   }, []);
 
@@ -219,17 +235,23 @@ const AppContent = () => {
     setScannerVisible(false);
     
     try {
-      // Expecting a JSON or a specific Stark Link string
-      // e.g., "STARK_LINK:socket_id" or "https://..."
-      if (data.startsWith('STARK_LINK:')) {
-        const targetId = data.replace('STARK_LINK:', '');
-        socket?.emit('pair-request', { targetId, device: 'Mobile' });
-        Alert.alert("STARK_LINK", "Workstation sync initiated. Check your PC app.");
+      const parsed = JSON.parse(data);
+      if (parsed.protocol === 'STARK_BRIDGE_V2' && parsed.sessionId) {
+        socket?.emit('pair-request', { targetId: parsed.sessionId, device: 'Mobile OS' });
+        setGoogleUser({ name: 'Stark Mobile', email: 'mobile.node@stark' });
+        Alert.alert("STARK_LINK_ESTABLISHED", "Secure connection to Workstation authorized. Note synchronization active.");
       } else {
-        Alert.alert("STARK_FAIL", "Invalid QR code. Please scan the 'Connect' QR from OmniNotes PC or Web.");
+        throw new Error("Invalid payload");
       }
     } catch (e) {
-      Alert.alert("STARK_ERROR", "Scanner decoding failure.");
+      if (data.startsWith('STARK_LINK:')) {
+        const targetId = data.replace('STARK_LINK:', '');
+        socket?.emit('pair-request', { targetId, device: 'Mobile OS' });
+        setGoogleUser({ name: 'Stark Mobile', email: 'mobile.node@stark' });
+        Alert.alert("STARK_LINK", "Legacy workstation synced.");
+      } else {
+        Alert.alert("STARK_FAIL", "Invalid QR code format.");
+      }
     } finally {
       setScanned(false);
     }
@@ -370,8 +392,13 @@ const AppContent = () => {
     openEditor(newNote);
   };
 
-  const syncToSocket = (id: string, title: string, content: string, tags: string[], checklist: any[]) => {
-    if (socket) socket.emit('typing', { noteId: id, title, content, tags, checklist });
+  const syncToSocket = (noteId: string, title: string, content: string, tags: string[], checklist: any[]) => {
+    if (socket) {
+      const noteToSync = notes.find(n => n.id === noteId);
+      if (noteToSync) {
+        socket.emit('typing', { ...noteToSync, title, content, tags, checklist, id: noteId });
+      }
+    }
   };
 
   const uniqueTags = useMemo(() => {
