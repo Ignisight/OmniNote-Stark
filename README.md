@@ -37,7 +37,7 @@
 ### **Web Workstation**
 1. **Repository**: `github.com/Ignisight/OmniNotes-Stark`
 2. **Build Engine**: Vite + React 19 (Industrial Alpha)
-3. **Deployment**: Vercel assigned domain: [omni-note-stark.vercel.app](https://omni-note-stark.vercel.app)
+3. **Deployment**: Vercel assigned domain: [omninotes-stark.vercel.app](https://omninotes-stark.vercel.app)
 
 ### **Mobile Node (APK)**
 1. **Build**: Trigger via EAS (Expo Application Services).
