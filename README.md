@@ -44,6 +44,11 @@
 2. **Command**: `npx eas build -p android --profile preview`
 3. **Distribution**: Direct APK download for android nodes.
 
+### **PC Workstation (Windows .exe)**
+1. **Build**: Built via Electron & Electron-Packager.
+2. **Distribution**: [Download OmniNotes-Stark Workstation (ZIP)](https://github.com/Ignisight/OmniNote-Stark/releases/download/v1.0.0-industrial/OmniNotes-Stark-PC.zip)
+3. **Setup**: Extract the zip file and run `OmniNotes-Stark.exe`.
+
 ---
 
 ## 🧪 Technical Specs
