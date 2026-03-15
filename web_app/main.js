@@ -10,7 +10,7 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    titleBarStyle: 'hidden',
+    autoHideMenuBar: true,
     backgroundColor: '#000000',
     webPreferences: {
       nodeIntegration: false,
