@@ -18,7 +18,8 @@ import {
   Pressable,
   Linking,
   Image,
-  Alert
+  Alert,
+  AppState
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { io, Socket } from 'socket.io-client';
@@ -136,6 +137,9 @@ const AppContent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   const sidebarAnim = useRef(new Animated.Value(-330)).current;
+  const notesRef = useRef<Note[]>([]);
+  useEffect(() => { notesRef.current = notes; }, [notes]);
+
   const [localTitle, setLocalTitle] = useState('');
   const [localContent, setLocalContent] = useState('');
   const [localTags, setLocalTags] = useState<string[]>([]);
@@ -246,8 +250,30 @@ const AppContent = () => {
       setNotes(allNotes);
     });
 
-    return () => { newSocket.disconnect(); };
-  }, []);
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        console.log('STARK_SYSTEM: APP_BACKGROUNDED -> COMMITTING_TO_DRIVE');
+        // Final commitment to Drive before suspension
+        if (notesRef.current.length > 0 && googleUser) {
+           newSocket.emit('drive-vault-commit', {
+             user: googleUser.email,
+             payload: notesRef.current,
+             timestamp: new Date().toISOString()
+           });
+        }
+        // Disconnect to save resources (Stateless Relay)
+        newSocket.disconnect();
+      } else if (nextAppState === 'active') {
+        console.log('STARK_SYSTEM: APP_ACTIVE -> RECONNECTING_BRIDGE');
+        newSocket.connect();
+      }
+    });
+
+    return () => { 
+      subscription.remove();
+      newSocket.disconnect(); 
+    };
+  }, [googleUser]);
 
   useEffect(() => {
     if (isAppReady) {
@@ -537,7 +563,7 @@ const AppContent = () => {
     if (socket) {
       socket.emit('drive-vault-commit', {
         user: googleUser.email,
-        payload: notes, // Real-time state persistence
+        payload: notesRef.current, // Use ref for freshest state
         timestamp: new Date().toISOString()
       });
     }
