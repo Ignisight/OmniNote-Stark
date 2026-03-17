@@ -24,6 +24,7 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import { io, Socket } from 'socket.io-client';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // Encryption logic moved to a lightweight native-safe implementation
 
 // Google Sign-In is usually configured with context/hooks in real apps, 
@@ -146,6 +147,7 @@ const AppContent = () => {
   // Cloud Sync State
   const [isSyncing, setIsSyncing] = useState(false);
   const [googleUser, setGoogleUser] = useState<{ name: string, email: string } | null>(null);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [availableAccounts, setAvailableAccounts] = useState([
@@ -203,6 +205,23 @@ const AppContent = () => {
   const ENCRYPTION_KEY = 'omninotes-stark-industrial'; // Standard industrial key
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const savedNotes = await AsyncStorage.getItem('stark_notes');
+        const savedTheme = await AsyncStorage.getItem('stark_theme');
+        const savedUser = await AsyncStorage.getItem('stark_user');
+
+        if (savedNotes) setNotes(JSON.parse(savedNotes));
+        if (savedTheme) setCurrentTheme(savedTheme);
+        if (savedUser) setGoogleUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("STARK_SYSTEM: LOAD_FAIL", e);
+      } finally {
+        setIsAppReady(true);
+      }
+    };
+    loadData();
+
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
     
@@ -229,6 +248,26 @@ const AppContent = () => {
 
     return () => { newSocket.disconnect(); };
   }, []);
+
+  useEffect(() => {
+    if (isAppReady) {
+      AsyncStorage.setItem('stark_notes', JSON.stringify(notes));
+    }
+  }, [notes, isAppReady]);
+
+  useEffect(() => {
+    if (isAppReady) {
+      AsyncStorage.setItem('stark_theme', currentTheme);
+    }
+  }, [currentTheme, isAppReady]);
+
+  useEffect(() => {
+    if (isAppReady && googleUser) {
+      AsyncStorage.setItem('stark_user', JSON.stringify(googleUser));
+    } else if (isAppReady && !googleUser) {
+      AsyncStorage.removeItem('stark_user');
+    }
+  }, [googleUser, isAppReady]);
 
   const handleBarCodeScanned = ({ type, data }: { type: string, data: string }) => {
     setScanned(true);
@@ -705,6 +744,52 @@ const AppContent = () => {
           </View>
           <TouchableOpacity style={[styles.mainFab, { backgroundColor: T.primary }]} onPress={() => handleCreateNote('text')}><Feather name="plus" size={30} color={T.bg} /></TouchableOpacity>
         </View>
+      )}
+
+      {/* LOGIN OVERLAY IF NOT LOGGED IN */}
+      {!googleUser && isAppReady && (
+        <Modal visible={!googleUser} animationType="fade" transparent={false}>
+          <View style={[styles.container, { backgroundColor: '#000', justifyContent: 'center', padding: 40 }]}>
+             <View style={[styles.logoBox, { borderColor: THEMES.STARK_RED.primary, alignSelf: 'center', width: 60, height: 60, marginBottom: 40 }]}>
+               <Text style={[styles.logoText, { color: THEMES.STARK_RED.primary, fontSize: 32 }]}>!</Text>
+             </View>
+             <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', marginBottom: 10 }}>OMNINOTES INDUSTRIAL</Text>
+             <Text style={{ color: '#444', fontSize: 10, fontWeight: '900', textAlign: 'center', letterSpacing: 2, marginBottom: 40 }}>SECURE_IDENTITY_VERIFICATION</Text>
+             
+             <View style={{ gap: 15 }}>
+                <TextInput 
+                  style={{ backgroundColor: '#0c0c0e', borderWidth: 1, borderColor: '#222', padding: 20, borderRadius: 20, color: '#fff' }}
+                  placeholder="Enter Operator Name"
+                  placeholderTextColor="#333"
+                  onChangeText={(val) => setNewTagInput(val)} // Reusing newTagInput as temp name
+                />
+                <TextInput 
+                  style={{ backgroundColor: '#0c0c0e', borderWidth: 1, borderColor: '#222', padding: 20, borderRadius: 20, color: '#fff' }}
+                  placeholder="Enter Gmail Address"
+                  placeholderTextColor="#333"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  onChangeText={(val) => setSearchQuery(val)} // Reusing searchQuery as temp email
+                />
+                <TouchableOpacity 
+                   style={{ backgroundColor: '#fff', padding: 20, borderRadius: 20, alignItems: 'center', marginTop: 10 }}
+                   onPress={() => {
+                     if (newTagInput && searchQuery.includes('@')) {
+                       setGoogleUser({ name: newTagInput, email: searchQuery });
+                       setNewTagInput('');
+                       setSearchQuery('');
+                     } else {
+                       Alert.alert("STARK_ERROR", "Invalid Identity Credentials.");
+                     }
+                   }}
+                >
+                  <Text style={{ color: '#000', fontWeight: '900' }}>AUTHORIZE_STARK_ACCESS</Text>
+                </TouchableOpacity>
+             </View>
+             
+             <Text style={{ color: '#222', fontSize: 8, textAlign: 'center', marginTop: 40 }}>VAULT_ENCRYPTION_ACTIVE_v5.6</Text>
+          </View>
+        </Modal>
       )}
 
       {isSidebarOpen && <Pressable style={styles.overlay} onPress={toggleSidebar} />}
