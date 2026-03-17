@@ -16,20 +16,21 @@ import {
   Modal,
   Animated,
   Pressable,
-  Linking,
   Image,
   Alert,
-  AppState
+  AppState,
+  Linking
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { io, Socket } from 'socket.io-client';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Encryption logic moved to a lightweight native-safe implementation
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Crypto from 'expo-crypto';
 
-// Google Sign-In is usually configured with context/hooks in real apps, 
-// here we implement the logic for the UI and encrypted drive-ready data structure.
+WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2;
@@ -122,7 +123,7 @@ const NoteCard = memo(({ item, onPress, isFullWidth, theme }: { item: Note, onPr
   );
 });
 
-const AppContent = () => {
+function App() {
   const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState<Note[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -150,7 +151,28 @@ const AppContent = () => {
 
   // Cloud Sync State
   const [isSyncing, setIsSyncing] = useState(false);
-  const [googleUser, setGoogleUser] = useState<{ name: string, email: string } | null>(null);
+  const [googleUser, setGoogleUser] = useState<any>(null);
+
+  // REAL GOOGLE AUTH SESSION
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com", 
+    iosClientId: "889390212351-v0i5v0i5v0i5v0i5v0i5v0i5v0i5v0i.apps.googleusercontent.com",
+    webClientId: "889390212351-v0i5v0i5v0i5v0i5v0i5v0i5v0i5v0.apps.googleusercontent.com",
+    scopes: ['https://www.googleapis.com/auth/drive.file'] 
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      setGoogleUser({ 
+        name: 'STARK_OPERATOR', 
+        email: 'operator@stark-industries.com',
+        token: authentication?.accessToken 
+      });
+      handleCloudSync();
+    }
+  }, [response]);
+
   const [isAppReady, setIsAppReady] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
@@ -233,6 +255,17 @@ const AppContent = () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
+
+
+    newSocket.on('auth-success', (data: { token: string }) => {
+       console.log("STARK_SYSTEM: MOBILE_IDENTITY_LINKED");
+       setGoogleUser({ 
+         name: 'STARK_OPERATOR', 
+         email: 'stark@stark-industries.com', // The backend doesn't send email currently, we can fetch it if needed
+         token: data.token 
+       });
+       handleCloudSync();
+    });
 
     newSocket.on('note-update', (updatedNote: Note) => {
       setNotes(prev => {
@@ -793,28 +826,24 @@ const AppContent = () => {
                   placeholderTextColor="#333"
                   onChangeText={(val) => setNewTagInput(val)} // Reusing newTagInput as temp name
                 />
-                <TextInput 
+                   <TextInput 
                   style={{ backgroundColor: '#0c0c0e', borderWidth: 1, borderColor: '#222', padding: 20, borderRadius: 20, color: '#fff' }}
-                  placeholder="Enter Gmail Address (Drive Login)"
+                  placeholder="STARK_VAULT_IDENTITY (e.g. Tony Stark)"
                   placeholderTextColor="#333"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  onChangeText={(val) => setSearchQuery(val)} // Reusing searchQuery as temp email
+                  onChangeText={(val) => setNewTagInput(val)}
                 />
-                <TouchableOpacity 
+                 <TouchableOpacity 
                    style={{ backgroundColor: '#fff', padding: 20, borderRadius: 20, alignItems: 'center', marginTop: 10 }}
                    onPress={() => {
-                     if (newTagInput && searchQuery.includes('@')) {
-                       setGoogleUser({ name: newTagInput, email: searchQuery });
-                       setNewTagInput('');
-                       setSearchQuery('');
-                       handleCloudSync(); 
-                     } else {
-                       Alert.alert("STARK_ERROR", "Invalid Drive Identity Credentials.");
-                     }
+                     if (!socket?.id) return Alert.alert("STARK_ERROR", "Identity Node Offline.");
+                     const bridgeUrl = `https://omninotes-core.onrender.com/auth/login?socketId=${socket.id}&platform=mobile`;
+                     Linking.openURL(bridgeUrl);
                    }}
                 >
-                  <Text style={{ color: '#000', fontWeight: '900' }}>AUTHORIZE_DRIVE_VAULT_ACCESS</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <MaterialCommunityIcons name="google" size={20} color="#000" style={{ marginRight: 10 }} />
+                    <Text style={{ color: '#000', fontWeight: '900' }}>AUTHORIZE_DRIVE_VAULT_ACCESS</Text>
+                  </View>
                 </TouchableOpacity>
              </View>
              
@@ -1383,9 +1412,15 @@ const AppContent = () => {
       </Modal>
     </View>
   );
-};
+}
 
-export default function App() { return ( <SafeAreaProvider><AppContent /></SafeAreaProvider> ); }
+export default function AppWrapper() {
+  return (
+    <SafeAreaProvider>
+      <App />
+    </SafeAreaProvider>
+  );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

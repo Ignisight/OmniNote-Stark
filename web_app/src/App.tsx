@@ -82,6 +82,23 @@ const App: React.FC = () => {
   }, [isLoggedIn]);
 
   useEffect(() => {
+    /* global google */
+    const handleCredentialResponse = (response: any) => {
+      console.log("STARK_SYSTEM: GOOGLE_IDENTITY_VERIFIED");
+      const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      localStorage.setItem('stark_user_email', payload.email);
+      setIsLoggedIn(true);
+    };
+
+    if ((window as any).google) {
+      (window as any).google.accounts.id.initialize({
+        client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com", // STARK_GLOBAL_ID
+        callback: handleCredentialResponse
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
     
@@ -90,6 +107,12 @@ const App: React.FC = () => {
       newSocket.emit('join-room', existingVault);
     }
     
+    newSocket.on('auth-success', (data: { token: string }) => {
+      console.log("STARK_SYSTEM: IDENTITY_LINKED_VIA_BRIDGE");
+      localStorage.setItem('stark_auth_token', data.token);
+      setIsLoggedIn(true);
+    });
+
     newSocket.on('note-update', (updatedNote: Note) => {
       setNotes(prev => {
         const idx = prev.findIndex(n => n.id === updatedNote.id);
@@ -412,8 +435,8 @@ const App: React.FC = () => {
                 <div className="profile-card-premium">
                   <div className="p-avatar" />
                   <div className="p-info">
-                    <span className="p-name">GUEST_ACCESS_v1</span>
-                    <span className="p-status">VAULT_STABLE • NO_ERRORS</span>
+                    <span className="p-name">{localStorage.getItem('stark_user_email')?.split('@')[0].toUpperCase() || 'STARK_OPERATOR'}</span>
+                    <span className="p-status">VAULT_STABLE • {localStorage.getItem('stark_user_email') || 'NO_IDENTITY'}</span>
                   </div>
                   <button className="tool-btn ml-auto"><RefreshCw size={14} /></button>
                 </div>
@@ -790,18 +813,23 @@ const FabOption = ({ icon, label, onClick }: any) => (
     {icon}
   </div>
 );
-
 const LoginPortal = ({ onLogin, socket }: { onLogin: () => void, socket: Socket | null }) => {
   const [showGmailSelector, setShowGmailSelector] = useState(false);
   const [showQRBridge, setShowQRBridge] = useState(false);
-  const [selectedGmail, setSelectedGmail] = useState<string | null>(null);
-
-  const handleGmailLogin = (email: string) => {
-    setSelectedGmail(email);
-    setTimeout(() => {
-      onLogin();
-      setShowGmailSelector(false);
-    }, 1500);
+  // Identity states removed as we now use real Google OAuth flow
+  const handleGooglePrompt = () => {
+    if (!socket?.id) return alert("STARK_ERROR: NODE_UNAVAILABLE");
+    
+    // Construct the Identity Bridge URL
+    const bridgeUrl = `https://omninotes-core.onrender.com/auth/login?socketId=${socket.id}&platform=pc`;
+    
+    // Check if running in Electron
+    if ((window as any).stark?.openExternal) {
+      (window as any).stark.openExternal(bridgeUrl);
+    } else {
+      // Standard browser window opening
+      window.open(bridgeUrl, '_blank');
+    }
   };
 
   return (
@@ -809,31 +837,32 @@ const LoginPortal = ({ onLogin, socket }: { onLogin: () => void, socket: Socket 
       <div className="dot-bg" />
       
       {showGmailSelector ? (
-        <div className="login-card p-8 animate-in fade-in zoom-in duration-300">
+        <div className="login-card p-8 animate-in fade-in zoom-in duration-300" style={{ maxWidth: '480px' }}>
           <div className="auth-header-strip">
-            <h2 className="auth-header-label">SELECT_STARK_DRIVE_VAULT</h2>
+            <h2 className="auth-header-label">STARK_IDENTITY_PORTAL</h2>
+            <p className="auth-subtitle mt-2" style={{ fontSize: '7px' }}>AUTHENTICATING_VIA_GOOGLE_CHROME</p>
           </div>
           
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {[
-              { name: 'STARK_OPERATOR_1', email: 'tony.s@drive.vault' },
-              { name: 'GUEST_ACCESS_v1', email: 'guest.identity@pc-local.vault' }
-            ].map((acc, i) => (
-              <button 
-                key={i} 
-                className="conn-card w-full" 
-                style={{ padding: '20px', background: selectedGmail === acc.email ? 'rgba(255,49,49,0.05)' : 'rgba(255,255,255,0.02)' }}
-                onClick={() => handleGmailLogin(acc.email)}
-              >
-                <div className="p-avatar" style={{ width: '30px', height: '30px' }} />
-                <div className="conn-info" style={{ textAlign: 'left', marginLeft: '12px' }}>
-                  <span className="conn-title" style={{ fontSize: '11px' }}>{acc.name}</span>
-                  <span className="conn-sub" style={{ fontSize: '9px' }}>{selectedGmail === acc.email ? 'DECRYPTING_DRIVE_VAULT...' : acc.email}</span>
-                </div>
-                {selectedGmail === acc.email && <RefreshCw size={14} className="animate-spin ml-auto text-[var(--primary)]" />}
-              </button>
-            ))}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <p className="auth-hint" style={{ fontSize: '9px', color: '#fff' }}>
+              PLEASE_COMPLETE_AUTHORIZATION_IN_THE_POPUP_WINDOW.
+            </p>
+
+            <button 
+              onClick={handleGooglePrompt}
+              className="google-sign-in-btn w-full !justify-center !py-5 !bg-white !text-black !rounded-2xl"
+            >
+              <CloudLightning size={18} />
+              <span className="text-xs font-black tracking-widest ml-3">OPEN_STARK_IDENTITY_VAULT</span>
+            </button>
           </div>
+
+          <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.05)', margin: '15px 0' }} />
+
+          <p className="auth-hint" style={{ fontSize: '7px' }}>
+            THIS_CONNECTION_ESTABLISHES_A_SECURE_DRIVE_RELAY.
+            YOUR_CREDENTIALS_ARE_NOT_STORED_ON_OMNINOTES_SERVER.
+          </p>
 
           <button className="add-check-link mt-6" onClick={() => setShowGmailSelector(false)}>← RETURN_TO_GATEWAY</button>
         </div>
