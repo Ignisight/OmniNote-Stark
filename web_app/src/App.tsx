@@ -56,8 +56,12 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('stark_logged_in') === 'true';
   });
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [systemStatus, setSystemStatus] = useState<'STABLE' | 'PATCHING' | 'RECOVERING'>('STABLE');
+  
+  const notesRef = useRef<Note[]>(notes);
+  useEffect(() => { notesRef.current = notes; }, [notes]);
+
+  const disconnectTimeoutRef = useRef<NodeJS.Timeout|null>(null);
 
   useEffect(() => {
     localStorage.setItem('stark_theme', currentTheme);
@@ -132,8 +136,29 @@ const App: React.FC = () => {
       setTimeout(() => setSystemStatus('STABLE'), 2000);
     });
 
-    return () => { newSocket.disconnect(); };
-  }, []);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        console.log('STARK_SYSTEM: WINDOW_HIDDEN -> COMMITTING_TO_DRIVE');
+        encryptAndSyncToDrive(notesRef.current);
+        // Delay disconnect slightly to allow emit to reach server
+        disconnectTimeoutRef.current = setTimeout(() => {
+          newSocket.disconnect();
+        }, 500);
+      } else {
+        if (disconnectTimeoutRef.current) clearTimeout(disconnectTimeoutRef.current);
+        console.log('STARK_SYSTEM: WINDOW_ACTIVE -> RECONNECTING_BRIDGE');
+        newSocket.connect();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', () => encryptAndSyncToDrive(notesRef.current));
+
+    return () => { 
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      newSocket.disconnect(); 
+    };
+  }, [isLoggedIn]);
 
   const encryptAndSyncToDrive = (noteData: Note[]) => {
     console.log('STARK_SYSTEM: AES_ENCRYPTING_VAULT_FOR_DRIVE...');
