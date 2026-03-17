@@ -34,13 +34,24 @@ interface Note {
 }
 
 const App: React.FC = () => {
+  console.log("STARK_SYSTEM: INITIALIZING_NODE_KERNEL_v1.7");
+  
   const [notes, setNotes] = useState<Note[]>(() => {
-    const saved = localStorage.getItem('stark_notes');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('stark_notes');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("STARK_ERROR: VAULT_CORRUPTION_DETECTED", e);
+      return [];
+    }
   });
+  
   const [currentTheme, setCurrentTheme] = useState<ThemeType>(() => {
-    return (localStorage.getItem('stark_theme') as ThemeType) || 'STARK_RED';
+    try {
+      return (localStorage.getItem('stark_theme') as ThemeType) || 'STARK_RED';
+    } catch { return 'STARK_RED'; }
   });
+
   const [currentView, setCurrentView] = useState<ViewType>('Notes');
   const [isGridView, setIsGridView] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,7 +65,9 @@ const App: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('ENGLISH (US)');
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('stark_logged_in') === 'true';
+    try {
+      return localStorage.getItem('stark_logged_in') === 'true';
+    } catch { return false; }
   });
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [systemStatus, setSystemStatus] = useState<'STABLE' | 'PATCHING' | 'RECOVERING'>('STABLE');
@@ -347,7 +360,7 @@ const App: React.FC = () => {
   }, [currentMonth]);
 
   if (!isLoggedIn) {
-    return <LoginPortal onLogin={() => setIsLoggedIn(true)} socket={socket} onGoogleSignIn={handleGoogleSignIn} />;
+    return <LoginPortal socket={socket} onGoogleSignIn={handleGoogleSignIn} />;
   }
 
   return (
@@ -886,7 +899,7 @@ const FabOption = ({ icon, label, onClick }: any) => (
     {icon}
   </div>
 );
-const LoginPortal = ({ onLogin, socket, onGoogleSignIn }: { onLogin: () => void, socket: Socket | null, onGoogleSignIn: () => void }) => {
+const LoginPortal = ({ socket, onGoogleSignIn }: { socket: Socket | null, onGoogleSignIn: () => void }) => {
   const [showGmailSelector, setShowGmailSelector] = useState(false);
   const [showQRBridge, setShowQRBridge] = useState(false);
 
@@ -985,8 +998,11 @@ const LoginPortal = ({ onLogin, socket, onGoogleSignIn }: { onLogin: () => void,
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
-            <span style={{ fontSize: '7px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '4px' }}>OMNINOTES_STARK_INDUSTRIAL</span>
-            <span style={{ fontSize: '7px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '2px' }}>ENCRYPTION_v5.6_STABLE</span>
+            <span className="entry-id mt-6">OMNINOTES_STARK_INDUSTRIAL</span>
+            <span className="entry-id text-[var(--primary)]">ENCRYPTION_v5.7_STABLE</span>
+            {!socket?.connected && (
+              <span className="entry-id text-white/20 mt-2 animate-pulse">GATEWAY_LINK_DEGRADED • CHECK_LAN_CONNECTIVITY</span>
+            )}
           </div>
         </div>
       )}
