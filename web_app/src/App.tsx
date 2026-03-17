@@ -125,7 +125,11 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const newSocket = io(SOCKET_URL);
+    const newSocket = io(SOCKET_URL, {
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      withCredentials: true
+    });
     setSocket(newSocket);
     
     const existingVault = localStorage.getItem('stark_vault_id');
