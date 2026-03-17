@@ -48,8 +48,9 @@ body { background: var(--bg); color: var(--text); overflow: hidden; }
   flex-shrink: 0;
 }
 .logo-box {
-  width: 28px; height: 28px; border: 2px solid var(--primary);
+  width: 28px; height: 28px; border: 3px solid var(--primary);
   display: flex; align-items: center; justify-content: center; color: var(--primary); transform: rotate(45deg);
+  box-shadow: 0 0 10px rgba(255, 49, 49, 0.3);
   flex-shrink: 0; cursor: pointer; transition: var(--transition);
 }
 .logo-box:hover { background: rgba(255, 49, 49, 0.1); transform: rotate(45deg) scale(1.1); }

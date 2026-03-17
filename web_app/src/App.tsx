@@ -235,13 +235,9 @@ const App: React.FC = () => {
       <aside className="stark-sidebar">
         <header className="sidebar-header">
           <div className="logo-area">
-            <div 
-              className="logo-box cursor-pointer hover:scale-105 transition-transform" 
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title="Toggle Sidebar"
-            >
-              <span>!</span>
-            </div>
+              <div className="logo-box cursor-pointer hover:scale-105 transition-transform" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} title="Toggle Sidebar">
+                <span>!</span>
+              </div>
           </div>
           <span className="brand-text">OmniNotes</span>
         </header>
@@ -852,7 +848,7 @@ const LoginPortal = ({ onLogin, socket }: { onLogin: () => void, socket: Socket 
         <div className="login-card">
           <div className="absolute top-0 left-0 w-full h-1 bg-[var(--primary)]" />
           
-          <div className="logo-box scale-125 mb-4"><span>!</span></div>
+          <div className="logo-box scale-125 mb-4 !border-[3px]"><span>!</span></div>
           
           <div style={{ textAlign: 'center' }}>
             <h1 className="auth-title">STARK_VAULT_DECRYPT</h1>
