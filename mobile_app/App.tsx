@@ -783,7 +783,7 @@ const AppContent = () => {
                      }
                    }}
                 >
-                  <Text style={{ color: '#000', fontWeight: '900' }}>AUTHORIZE_STARK_ACCESS</Text>
+                  <Text style={{ color: '#000', fontWeight: '900' }}>AUTHORIZE_OMNINOTE_ACCESS</Text>
                 </TouchableOpacity>
              </View>
              
@@ -1367,16 +1367,20 @@ const styles = StyleSheet.create({
   logoBox: { 
     width: 24, 
     height: 24, 
-    borderWidth: 2, 
+    borderWidth: 3, 
     borderColor: '#ff3131', 
     backgroundColor: '#000', 
     justifyContent: 'center', 
     alignItems: 'center',
-    transform: [{ rotate: '45deg' }]
+    transform: [{ rotate: '45deg' }],
+    shadowColor: '#ff3131',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5
   },
   logoText: { 
     color: '#ff3131', 
-    fontSize: 14, 
+    fontSize: 16, 
     fontWeight: '900',
     transform: [{ rotate: '-45deg' }]
   },
