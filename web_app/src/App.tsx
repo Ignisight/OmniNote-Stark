@@ -86,7 +86,6 @@ const App: React.FC = () => {
   useEffect(() => {
     /* global google */
     if ((window as any).google) {
-      // 1. Initialize Name/Identity Flow (for the UI)
       (window as any).google.accounts.id.initialize({
         client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com",
         callback: (response: any) => {
@@ -95,7 +94,6 @@ const App: React.FC = () => {
         }
       });
 
-      // 2. Initialize Storage Flow (for Google Drive access)
       tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient({
         client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com",
         scope: "https://www.googleapis.com/auth/drive.file",
@@ -104,6 +102,7 @@ const App: React.FC = () => {
             console.log("STARK_SYSTEM: DRIVE_VAULT_AUTHORIZED");
             localStorage.setItem('stark_auth_token', response.access_token);
             setIsLoggedIn(true);
+            handleDriveSync();
           }
         },
       });
@@ -114,13 +113,80 @@ const App: React.FC = () => {
     if (tokenClientRef.current) {
       tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
     } else {
-      // Fallback to bridge if GSI hasn't loaded (unlikely in web but possible in Electron)
       const bridgeUrl = `https://omninotes-core.onrender.com/auth/login?socketId=${socket?.id}&platform=pc`;
       if ((window as any).stark?.openExternal) {
         (window as any).stark.openExternal(bridgeUrl);
       } else {
         window.open(bridgeUrl, '_blank');
       }
+    }
+  };
+
+  const handleDriveSync = async () => {
+    const token = localStorage.getItem('stark_auth_token');
+    if (!token) return;
+
+    try {
+      setSystemStatus('RECOVERING');
+      const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?q=name='omninotes_stark_vault.json'&fields=files(id, name)", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const searchData = await searchRes.json();
+      
+      if (searchData.files && searchData.files.length > 0) {
+        const fileId = searchData.files[0].id;
+        const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const content = await contentRes.json();
+        if (content && content.notes) {
+          setNotes(content.notes);
+          localStorage.setItem('stark_notes', JSON.stringify(content.notes));
+        }
+      }
+      setSystemStatus('STABLE');
+    } catch (e) {
+      console.error("STARK_ERROR: DRIVE_SYNC_PULL_FAIL", e);
+      setSystemStatus('STABLE');
+    }
+  };
+
+  const pushNotesToDrive = async () => {
+    const token = localStorage.getItem('stark_auth_token');
+    if (!token) return;
+
+    try {
+      setSystemStatus('PATCHING');
+      const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?q=name='omninotes_stark_vault.json'&fields=files(id, name)", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const searchData = await searchRes.json();
+      const body = JSON.stringify({ notes: notesRef.current, updatedAt: new Date().toISOString() });
+      
+      if (searchData.files && searchData.files.length > 0) {
+        const fileId = searchData.files[0].id;
+        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: body
+        });
+      } else {
+        const metadata = { name: 'omninotes_stark_vault.json', mimeType: 'application/json' };
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', new Blob([body], { type: 'application/json' }));
+
+        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form
+        });
+      }
+      setSystemStatus('STABLE');
+      socket?.emit('drive-vault-commit', { user: localStorage.getItem('stark_user_email') });
+    } catch (e) {
+      console.error("STARK_ERROR: DRIVE_SYNC_PUSH_FAIL", e);
+      setSystemStatus('STABLE');
     }
   };
 
@@ -132,15 +198,14 @@ const App: React.FC = () => {
     });
     setSocket(newSocket);
     
-    const existingVault = localStorage.getItem('stark_vault_id');
-    if (existingVault) {
-      newSocket.emit('join-room', existingVault);
+    if (localStorage.getItem('stark_vault_id')) {
+      newSocket.emit('join-room', localStorage.getItem('stark_vault_id'));
     }
     
     newSocket.on('auth-success', (data: { token: string }) => {
-      console.log("STARK_SYSTEM: IDENTITY_LINKED_VIA_BRIDGE");
       localStorage.setItem('stark_auth_token', data.token);
       setIsLoggedIn(true);
+      handleDriveSync();
     });
 
     newSocket.on('note-update', (updatedNote: Note) => {
@@ -156,7 +221,6 @@ const App: React.FC = () => {
     });
 
     newSocket.on('bridge-auth-success', (userData: { email: string, vaultId: string }) => {
-      console.log('STARK_SYSTEM: SECURE_BRIDGE_VERIFIED', userData);
       localStorage.setItem('stark_vault_id', userData.vaultId);
       setIsLoggedIn(true);
     });
@@ -170,136 +234,44 @@ const App: React.FC = () => {
       setNotes(allNotes);
     });
 
-    // Handle high-volume Drive vault synchronization
     newSocket.on('vault-sync', () => {
-      console.log('STARK_SYSTEM: INCOMING_ENCRYPTED_DRIVE_PAYLOAD');
-      handleDriveSync(); // Pull fresh data from Drive
+      handleDriveSync();
     });
 
-    const handleDriveSync = async () => {
-      const token = localStorage.getItem('stark_auth_token');
-      if (!token) return;
-
-      try {
-        setSystemStatus('RECOVERING');
-        // Search for the vault file
-        const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?q=name='omninotes_stark_vault.json'&fields=files(id, name)", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const searchData = await searchRes.json();
-        
-        if (searchData.files && searchData.files.length > 0) {
-          const fileId = searchData.files[0].id;
-          const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const content = await contentRes.json();
-          if (content && content.notes) {
-            setNotes(content.notes);
-            localStorage.setItem('stark_notes', JSON.stringify(content.notes));
-            console.log("STARK_SYSTEM: DRIVE_VAULT_PULLED_SUCCESS");
-          }
-        }
-        setSystemStatus('STABLE');
-      } catch (e) {
-        console.error("STARK_ERROR: DRIVE_SYNC_PULL_FAIL", e);
-        setSystemStatus('STABLE');
-      }
-    };
-
-    const pushNotesToDrive = async () => {
-      const token = localStorage.getItem('stark_auth_token');
-      if (!token) return;
-
-      try {
-        setSystemStatus('PATCHING');
-        const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?q=name='omninotes_stark_vault.json'&fields=files(id, name)", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const searchData = await searchRes.json();
-        const body = JSON.stringify({ notes: notesRef.current, updatedAt: new Date().toISOString() });
-        
-        if (searchData.files && searchData.files.length > 0) {
-          const fileId = searchData.files[0].id;
-          await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: body
-          });
-        } else {
-          // Create new file
-          const metadata = { name: 'omninotes_stark_vault.json', mimeType: 'application/json' };
-          const form = new FormData();
-          form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-          form.append('file', new Blob([body], { type: 'application/json' }));
-
-          await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: form
-          });
-        }
-        setSystemStatus('STABLE');
-        socket?.emit('drive-vault-commit', { user: localStorage.getItem('stark_user_email') });
-      } catch (e) {
-        console.error("STARK_ERROR: DRIVE_SYNC_PUSH_FAIL", e);
-        setSystemStatus('STABLE');
-      }
-    };
-
-    // Trigger initial pull once socket is ready and we are logged in
-    handleDriveSync();
-
-    const pushInterval = setInterval(pushNotesToDrive, 30000); // Periodic push every 30s
-    const visibilityListener = () => { if (document.hidden) pushNotesToDrive(); };
-    document.addEventListener('visibilitychange', visibilityListener);
-
-    // Handle Over-the-Air (OTA) Hot Patches for post-deployment fixes
     newSocket.on('system-patch', (patch: { id: string, type: 'CSS' | 'LOGIC', data: string }) => {
-      console.log('STARK_SYSTEM: INCOMING_HOT_PATCH', patch.id);
       setSystemStatus('PATCHING');
-      
       if (patch.type === 'CSS') {
         const style = document.createElement('style');
         style.textContent = patch.data;
         document.head.appendChild(style);
       }
-      
       setTimeout(() => setSystemStatus('STABLE'), 2000);
     });
 
+    const pushInterval = setInterval(pushNotesToDrive, 30000);
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        console.log('STARK_SYSTEM: WINDOW_HIDDEN -> COMMITTING_TO_DRIVE');
-        encryptAndSyncToDrive(notesRef.current);
-        // Delay disconnect slightly to allow emit to reach server
+        pushNotesToDrive();
         disconnectTimeoutRef.current = setTimeout(() => {
           newSocket.disconnect();
         }, 500);
       } else {
         if (disconnectTimeoutRef.current) clearTimeout(disconnectTimeoutRef.current);
-        console.log('STARK_SYSTEM: WINDOW_ACTIVE -> RECONNECTING_BRIDGE');
-        newSocket.connect();
+        if (!newSocket.connected) newSocket.connect();
       }
     };
 
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', () => encryptAndSyncToDrive(notesRef.current));
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', pushNotesToDrive);
 
-    return () => { 
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      newSocket.disconnect(); 
+    return () => {
+      clearInterval(pushInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', pushNotesToDrive);
+      newSocket.disconnect();
     };
   }, [isLoggedIn]);
-
-  const encryptAndSyncToDrive = (noteData: Note[]) => {
-    console.log('STARK_SYSTEM: AES_ENCRYPTING_VAULT_FOR_DRIVE...');
-    // Simulated encryption & transmission to the dedicated Stark Drive folder
-    socket?.emit('drive-vault-commit', {
-      folder: 'STARK_VAULT',
-      payload: noteData // In a production app, this would be a real encrypted string
-    });
-  };
 
   const addNote = (type: NoteType) => {
     const newNote: Note = {
@@ -328,13 +300,11 @@ const App: React.FC = () => {
     if (current) {
       const merged = { ...current, ...updates };
       socket?.emit('typing', merged);
-      encryptAndSyncToDrive(notes.map(n => n.id === id ? merged : n));
     }
   };
 
   const deleteNote = (id: string) => {
     setNotes(prev => prev.filter(n => n.id !== id));
-    // Implementation for permanent server-side purge would go here
   };
 
   const filteredNotes = useMemo(() => {
@@ -342,20 +312,15 @@ const App: React.FC = () => {
       const matchSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           n.content.toLowerCase().includes(searchQuery.toLowerCase());
       if (!matchSearch) return false;
-
       if (n.isDeleted) return currentView === 'Trash';
-      if (currentView === 'Trash') return false; // Hide non-deleted notes in Trash view
-
+      if (currentView === 'Trash') return false; 
       if (n.isArchived) return currentView === 'Archive';
-      if (currentView === 'Archive') return false; // Hide non-archived notes in Archive view
-
+      if (currentView === 'Archive') return false; 
       if (currentView === 'Reminders') return n.isReminder && !n.isDeleted && !n.isArchived;
       if (currentView === 'Tag' && selectedTag) return n.tags.includes(selectedTag) && !n.isDeleted && !n.isArchived;
-      
       return !n.isDeleted && !n.isArchived && currentView === 'Notes';
     }).sort((a, b) => {
       if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-      
       switch (sortMode) {
         case 'oldest': return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
         case 'az': return a.title.localeCompare(b.title);
