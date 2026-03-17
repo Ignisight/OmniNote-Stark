@@ -56,12 +56,13 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('stark_logged_in') === 'true';
   });
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [systemStatus, setSystemStatus] = useState<'STABLE' | 'PATCHING' | 'RECOVERING'>('STABLE');
   
   const notesRef = useRef<Note[]>(notes);
   useEffect(() => { notesRef.current = notes; }, [notes]);
 
-  const disconnectTimeoutRef = useRef<NodeJS.Timeout|null>(null);
+  const disconnectTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     localStorage.setItem('stark_theme', currentTheme);
