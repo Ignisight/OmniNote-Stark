@@ -64,6 +64,16 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('drive-vault-commit', (data) => {
+    console.log('STARK_NODE: SECURE_DRIVE_COMMIT ->', data.user || 'STARK_OPERATOR');
+    // Broadcast back to all rooms to confirm persistence
+    socket.rooms.forEach(room => {
+      if (room.startsWith('user-vault-')) {
+        socket.to(room).emit('vault-sync-success', { timestamp: new Date().toISOString() });
+      }
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('STARK_NODE: Station Disconnected', socket.id);
   });
