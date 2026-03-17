@@ -3,7 +3,7 @@
  * Handles OAuth2 and File Operations
  */
 
-const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'; // User needs to replace this
+const CLIENT_ID = '188263362905-05e73in41h1ib970spt6q3meoidg2fte.apps.googleusercontent.com'; // Resolved to student workplace client
 const API_KEY = 'YOUR_API_KEY'; // User needs to replace this
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
 const SCOPES = "https://www.googleapis.com/auth/drive.file";

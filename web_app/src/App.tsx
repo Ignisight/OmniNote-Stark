@@ -100,7 +100,7 @@ const App: React.FC = () => {
     /* global google */
     if ((window as any).google) {
       (window as any).google.accounts.id.initialize({
-        client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com",
+        client_id: "188263362905-05e73in41h1ib970spt6q3meoidg2fte.apps.googleusercontent.com",
         callback: (response: any) => {
           const payload = JSON.parse(atob(response.credential.split('.')[1]));
           localStorage.setItem('stark_user_email', payload.email);
@@ -108,7 +108,7 @@ const App: React.FC = () => {
       });
 
       tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com",
+        client_id: "188263362905-05e73in41h1ib970spt6q3meoidg2fte.apps.googleusercontent.com",
         scope: "https://www.googleapis.com/auth/drive.file",
         callback: (response: any) => {
           if (response.access_token) {

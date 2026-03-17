@@ -155,9 +155,9 @@ function App() {
 
   // REAL GOOGLE AUTH SESSION
   const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com", 
-    iosClientId: "889390212351-v0i5v0i5v0i5v0i5v0i5v0i5v0i5v0i.apps.googleusercontent.com",
-    webClientId: "889390212351-v0i5v0i5v0i5v0i5v0i5v0i5v0i5v0.apps.googleusercontent.com",
+    androidClientId: "188263362905-05e73in41h1ib970spt6q3meoidg2fte.apps.googleusercontent.com", 
+    iosClientId: "188263362905-05e73in41h1ib970spt6q3meoidg2fte.apps.googleusercontent.com",
+    webClientId: "188263362905-05e73in41h1ib970spt6q3meoidg2fte.apps.googleusercontent.com",
     scopes: ['https://www.googleapis.com/auth/drive.file'] 
   });
 

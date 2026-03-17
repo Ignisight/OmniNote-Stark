@@ -88,7 +88,7 @@ app.get('/health', (req, res) => {
 
 // STARK IDENTITY LINK PROTOCOL
 // This bridges the real browser session (Chrome) back to the workstation
-const GOOGLE_CLIENT_ID = "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com"; 
+const GOOGLE_CLIENT_ID = "188263362905-05e73in41h1ib970spt6q3meoidg2fte.apps.googleusercontent.com"; 
 
 app.get('/auth/login', (req, res) => {
   const { socketId, platform } = req.query;
