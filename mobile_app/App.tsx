@@ -899,101 +899,110 @@ const AppContent = () => {
               </View>
             )}
           </View>
-          <ScrollView style={styles.editorBody} keyboardShouldPersistTaps="always">
-            <TextInput style={[styles.titleInput, { color: T.text }]} placeholder="Title" placeholderTextColor={T.sub + '88'} value={localTitle} onChangeText={(t) => { setLocalTitle(t); editingNote && syncToSocket(editingNote.id, t, localContent, localTags, localChecklist); }} />
-            
-            <View style={styles.tagManagementRow}>
-              {localTags.map(t => (
-                <TouchableOpacity key={t} style={[styles.tagBubble, { backgroundColor: T.card, borderColor: T.border }]} onPress={() => removeTag(t)}>
-                  <Text style={[styles.tagBubbleText, { color: T.text }]}>#{t}</Text><Feather name="x" size={10} color={T.primary} />
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={[styles.addTagBtn, { backgroundColor: T.card, borderColor: T.border }]} onPress={() => setIsTagPickerOpen(!isTagPickerOpen)}><Feather name={isTagPickerOpen ? "minus" : "plus"} size={16} color={T.sub} /></TouchableOpacity>
-            </View>
-
-            {isTagPickerOpen && (
-              <View style={[styles.tagPickerSection, { backgroundColor: T.card, borderColor: T.border }]}>
-                <View style={styles.tagSuggestions}>
-                  {uniqueTags.filter(t => !localTags.includes(t)).map(t => (
-                    <TouchableOpacity key={t} style={styles.suggestionBubble} onPress={() => { const n = [...localTags, t]; setLocalTags(n); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, n, localChecklist); }}>
-                      <Text style={[styles.suggestionText, { color: T.sub }]}>#{t}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TextInput style={[styles.newTagInput, { color: T.text, borderBottomColor: T.border }]} placeholder="New Tag..." placeholderTextColor={T.sub + '88'} value={newTagInput} onChangeText={setNewTagInput} onSubmitEditing={() => { if(newTagInput) { const n = [...localTags, newTagInput.trim()]; setLocalTags(n); setNewTagInput(''); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, n, localChecklist); }}} />
-              </View>
-            )}
-
-            {localChecklist.length > 0 && (
-              <View style={styles.editorChecklist}>
-                {localChecklist.map((item, i) => (
-                  <View key={i} style={styles.editCheckRow}>
-                    <TouchableOpacity onPress={() => { const n = [...localChecklist]; n[i].completed = !n[i].completed; setLocalChecklist(n); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, localTags, n); }}>
-                      <Feather name={item.completed ? "check-square" : "square"} size={20} color={item.completed ? T.primary : T.sub} />
-                    </TouchableOpacity>
-                    <TextInput 
-                      style={[styles.editCheckInput, { color: T.text }, item.completed && { color: T.sub, textDecorationLine: 'line-through' }]}
-                      value={item.text}
-                      onChangeText={(t) => { const n = [...localChecklist]; n[i].text = t; setLocalChecklist(n); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, localTags, n); }}
-                    />
-                  </View>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={{ flex: 1 }}
+          >
+            <ScrollView 
+              style={styles.editorBody} 
+              contentContainerStyle={{ paddingBottom: 200 }} 
+              keyboardShouldPersistTaps="always"
+            >
+              <TextInput style={[styles.titleInput, { color: T.text }]} placeholder="Title" placeholderTextColor={T.sub + '88'} value={localTitle} onChangeText={(t) => { setLocalTitle(t); editingNote && syncToSocket(editingNote.id, t, localContent, localTags, localChecklist); }} />
+              
+              <View style={styles.tagManagementRow}>
+                {localTags.map(t => (
+                  <TouchableOpacity key={t} style={[styles.tagBubble, { backgroundColor: T.card, borderColor: T.border }]} onPress={() => removeTag(t)}>
+                    <Text style={[styles.tagBubbleText, { color: T.text }]}>#{t}</Text><Feather name="x" size={10} color={T.primary} />
+                  </TouchableOpacity>
                 ))}
-                <TouchableOpacity onPress={() => setLocalChecklist([...localChecklist, { text: '', completed: false }])} style={styles.addCheckBtn}>
-                  <Feather name="plus" size={18} color={T.primary} /><Text style={[styles.addCheckTxt, { color: T.primary }]}>Add Item</Text>
-                </TouchableOpacity>
+                <TouchableOpacity style={[styles.addTagBtn, { backgroundColor: T.card, borderColor: T.border }]} onPress={() => setIsTagPickerOpen(!isTagPickerOpen)}><Feather name={isTagPickerOpen ? "minus" : "plus"} size={16} color={T.sub} /></TouchableOpacity>
               </View>
-            )}
 
-            {localImage && (
-              <View style={styles.editorImageRow}>
-                <Image source={{ uri: localImage }} style={styles.editorImage} />
-                <TouchableOpacity style={styles.removeImageBtn} onPress={() => setLocalImage(null)}><Feather name="x" size={14} color="#fff" /></TouchableOpacity>
-              </View>
-            )}
+              {isTagPickerOpen && (
+                <View style={[styles.tagPickerSection, { backgroundColor: T.card, borderColor: T.border }]}>
+                  <View style={styles.tagSuggestions}>
+                    {uniqueTags.filter(t => !localTags.includes(t)).map(t => (
+                      <TouchableOpacity key={t} style={styles.suggestionBubble} onPress={() => { const n = [...localTags, t]; setLocalTags(n); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, n, localChecklist); }}>
+                        <Text style={[styles.suggestionText, { color: T.sub }]}>#{t}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TextInput style={[styles.newTagInput, { color: T.text, borderBottomColor: T.border }]} placeholder="New Tag..." placeholderTextColor={T.sub + '88'} value={newTagInput} onChangeText={setNewTagInput} onSubmitEditing={() => { if(newTagInput) { const n = [...localTags, newTagInput.trim()]; setLocalTags(n); setNewTagInput(''); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, n, localChecklist); }}} />
+                </View>
+              )}
 
-            {noteType === 'code' ? (
-              <View style={[styles.codeEditorContainer, { backgroundColor: T.id.includes('LITE') ? '#fff' : '#050505', borderColor: T.primary, borderLeftColor: T.primary }]}>
-                <View style={[styles.codeEditorHeader, { backgroundColor: T.id.includes('LITE') ? '#f0f0f0' : '#111' }]}>
-                  <Text style={[styles.codeHeaderLabel, { color: T.sub }]}>TERMINAL_BLOCK</Text>
-                  <TouchableOpacity 
-                    style={styles.copyBtn} 
-                    onPress={async () => {
-                      await Clipboard.setStringAsync(localContent);
-                      setIsCopied(true);
-                      setTimeout(() => setIsCopied(false), 2000);
-                    }}
-                  >
-                    <Feather name={isCopied ? "check" : "copy"} size={12} color={isCopied ? "#00ff00" : T.sub} />
-                    <Text style={[styles.copyBtnTxt, { color: T.sub }, isCopied && { color: '#00ff00' }]}>{isCopied ? 'COPIED!' : 'COPY'}</Text>
+              {localChecklist.length > 0 && (
+                <View style={styles.editorChecklist}>
+                  {localChecklist.map((item, i) => (
+                    <View key={i} style={styles.editCheckRow}>
+                      <TouchableOpacity onPress={() => { const n = [...localChecklist]; n[i].completed = !n[i].completed; setLocalChecklist(n); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, localTags, n); }}>
+                        <Feather name={item.completed ? "check-square" : "square"} size={20} color={item.completed ? T.primary : T.sub} />
+                      </TouchableOpacity>
+                      <TextInput 
+                        style={[styles.editCheckInput, { color: T.text }, item.completed && { color: T.sub, textDecorationLine: 'line-through' }]}
+                        value={item.text}
+                        onChangeText={(t) => { const n = [...localChecklist]; n[i].text = t; setLocalChecklist(n); if(editingNote) syncToSocket(editingNote.id, localTitle, localContent, localTags, n); }}
+                      />
+                    </View>
+                  ))}
+                  <TouchableOpacity onPress={() => setLocalChecklist([...localChecklist, { text: '', completed: false }])} style={styles.addCheckBtn}>
+                    <Feather name="plus" size={18} color={T.primary} /><Text style={[styles.addCheckTxt, { color: T.primary }]}>Add Item</Text>
                   </TouchableOpacity>
                 </View>
+              )}
+
+              {localImage && (
+                <View style={styles.editorImageRow}>
+                  <Image source={{ uri: localImage }} style={styles.editorImage} />
+                  <TouchableOpacity style={styles.removeImageBtn} onPress={() => setLocalImage(null)}><Feather name="x" size={14} color="#fff" /></TouchableOpacity>
+                </View>
+              )}
+
+              {noteType === 'code' ? (
+                <View style={[styles.codeEditorContainer, { backgroundColor: T.id.includes('LITE') ? '#fff' : '#050505', borderColor: T.primary, borderLeftColor: T.primary }]}>
+                  <View style={[styles.codeEditorHeader, { backgroundColor: T.id.includes('LITE') ? '#f0f0f0' : '#111' }]}>
+                    <Text style={[styles.codeHeaderLabel, { color: T.sub }]}>TERMINAL_BLOCK</Text>
+                    <TouchableOpacity 
+                      style={styles.copyBtn} 
+                      onPress={async () => {
+                        await Clipboard.setStringAsync(localContent);
+                        setIsCopied(true);
+                        setTimeout(() => setIsCopied(false), 2000);
+                      }}
+                    >
+                      <Feather name={isCopied ? "check" : "copy"} size={12} color={isCopied ? "#00ff00" : T.sub} />
+                      <Text style={[styles.copyBtnTxt, { color: T.sub }, isCopied && { color: '#00ff00' }]}>{isCopied ? 'COPIED!' : 'COPY'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput 
+                    style={[styles.codeContentInput, { color: T.id.includes('LITE') ? '#000' : T.primary, padding: 15 }]} 
+                    multiline 
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="Insert code here..." 
+                    placeholderTextColor={T.sub + '88'} 
+                    value={localContent} 
+                    onChangeText={(t) => { setLocalContent(t); editingNote && syncToSocket(editingNote.id, localTitle, t, localTags, localChecklist); }} 
+                  />
+                </View>
+              ) : (
                 <TextInput 
-                  style={[styles.codeContentInput, { color: T.id.includes('LITE') ? '#000' : T.primary, padding: 15 }]} 
+                  style={[styles.contentInput, { color: T.text }]} 
                   multiline 
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  placeholder="Insert code here..." 
+                  autoFocus={localChecklist.length === 0} 
+                  placeholder="Note" 
                   placeholderTextColor={T.sub + '88'} 
                   value={localContent} 
                   onChangeText={(t) => { setLocalContent(t); editingNote && syncToSocket(editingNote.id, localTitle, t, localTags, localChecklist); }} 
                 />
-              </View>
-            ) : (
-              <TextInput 
-                style={[styles.contentInput, { color: T.text }]} 
-                multiline 
-                autoFocus={localChecklist.length === 0} 
-                placeholder="Note" 
-                placeholderTextColor={T.sub + '88'} 
-                value={localContent} 
-                onChangeText={(t) => { setLocalContent(t); editingNote && syncToSocket(editingNote.id, localTitle, t, localTags, localChecklist); }} 
-              />
-            )}
-          </ScrollView>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
 
           {/* EDITOR TOOLBAR */}
-          <View style={[styles.editorToolbar, { borderTopColor: T.border }]}>
+          <View style={[styles.editorToolbar, { borderTopColor: T.border, paddingBottom: Math.max(insets.bottom, 15) }]}>
             <TouchableOpacity onPress={() => { if(localChecklist.length === 0) setLocalChecklist([{ text: '', completed: false }]); }}>
               <Feather name="plus-square" size={20} color={T.sub} />
             </TouchableOpacity>
