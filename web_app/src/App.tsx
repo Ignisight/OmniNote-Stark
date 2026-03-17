@@ -81,22 +81,48 @@ const App: React.FC = () => {
     }
   }, [isLoggedIn]);
 
+  const tokenClientRef = useRef<any>(null);
+
   useEffect(() => {
     /* global google */
-    const handleCredentialResponse = (response: any) => {
-      console.log("STARK_SYSTEM: GOOGLE_IDENTITY_VERIFIED");
-      const payload = JSON.parse(atob(response.credential.split('.')[1]));
-      localStorage.setItem('stark_user_email', payload.email);
-      setIsLoggedIn(true);
-    };
-
     if ((window as any).google) {
+      // 1. Initialize Name/Identity Flow (for the UI)
       (window as any).google.accounts.id.initialize({
-        client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com", // STARK_GLOBAL_ID
-        callback: handleCredentialResponse
+        client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com",
+        callback: (response: any) => {
+          const payload = JSON.parse(atob(response.credential.split('.')[1]));
+          localStorage.setItem('stark_user_email', payload.email);
+        }
+      });
+
+      // 2. Initialize Storage Flow (for Google Drive access)
+      tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient({
+        client_id: "889390212351-ivpqcjt3j7n5u085j8v0i5v0i5v0i5v0.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/drive.file",
+        callback: (response: any) => {
+          if (response.access_token) {
+            console.log("STARK_SYSTEM: DRIVE_VAULT_AUTHORIZED");
+            localStorage.setItem('stark_auth_token', response.access_token);
+            setIsLoggedIn(true);
+          }
+        },
       });
     }
   }, []);
+
+  const handleGoogleSignIn = () => {
+    if (tokenClientRef.current) {
+      tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
+    } else {
+      // Fallback to bridge if GSI hasn't loaded (unlikely in web but possible in Electron)
+      const bridgeUrl = `https://omninotes-core.onrender.com/auth/login?socketId=${socket?.id}&platform=pc`;
+      if ((window as any).stark?.openExternal) {
+        (window as any).stark.openExternal(bridgeUrl);
+      } else {
+        window.open(bridgeUrl, '_blank');
+      }
+    }
+  };
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
@@ -274,7 +300,7 @@ const App: React.FC = () => {
   }, [currentMonth]);
 
   if (!isLoggedIn) {
-    return <LoginPortal onLogin={() => setIsLoggedIn(true)} socket={socket} />;
+    return <LoginPortal onLogin={() => setIsLoggedIn(true)} socket={socket} onGoogleSignIn={handleGoogleSignIn} />;
   }
 
   return (
@@ -813,24 +839,9 @@ const FabOption = ({ icon, label, onClick }: any) => (
     {icon}
   </div>
 );
-const LoginPortal = ({ onLogin, socket }: { onLogin: () => void, socket: Socket | null }) => {
+const LoginPortal = ({ onLogin, socket, onGoogleSignIn }: { onLogin: () => void, socket: Socket | null, onGoogleSignIn: () => void }) => {
   const [showGmailSelector, setShowGmailSelector] = useState(false);
   const [showQRBridge, setShowQRBridge] = useState(false);
-  // Identity states removed as we now use real Google OAuth flow
-  const handleGooglePrompt = () => {
-    if (!socket?.id) return alert("STARK_ERROR: NODE_UNAVAILABLE");
-    
-    // Construct the Identity Bridge URL
-    const bridgeUrl = `https://omninotes-core.onrender.com/auth/login?socketId=${socket.id}&platform=pc`;
-    
-    // Check if running in Electron
-    if ((window as any).stark?.openExternal) {
-      (window as any).stark.openExternal(bridgeUrl);
-    } else {
-      // Standard browser window opening
-      window.open(bridgeUrl, '_blank');
-    }
-  };
 
   return (
     <div className="login-gate">
@@ -849,7 +860,7 @@ const LoginPortal = ({ onLogin, socket }: { onLogin: () => void, socket: Socket 
             </p>
 
             <button 
-              onClick={handleGooglePrompt}
+              onClick={onGoogleSignIn}
               className="google-sign-in-btn w-full !justify-center !py-5 !bg-white !text-black !rounded-2xl"
             >
               <CloudLightning size={18} />
